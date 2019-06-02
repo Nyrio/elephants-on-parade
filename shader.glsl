@@ -1,7 +1,12 @@
 #define AA 1
 #define SPLINE 8
 
-// Adapted from https://stackoverflow.com/a/218081/8259873
+/* A few explanations are given in my blog post:
+ * https://nyri0.fr/en/blog/25
+ */
+
+/* Adapted from https://stackoverflow.com/a/218081/8259873
+ * Finds out if two lines AB and CD intersect each other */
 int intersects(vec2 A, vec2 B, vec2 C, vec2 D)
 {
     const vec2 m1 = vec2(1,-1);
@@ -14,6 +19,8 @@ int intersects(vec2 A, vec2 B, vec2 C, vec2 D)
     return ((dot(A, bt) + c) * (dot(B, bt) + c) > 0.0) ? 0 : 1;
 }
 
+/* Utility functions that help calculating the bounding box of
+ * a cubic Bezier curve */
 float minv(vec4 v)
 {
     return min(min(v.x,v.y),min(v.z,v.w));
@@ -23,6 +30,8 @@ float maxv(vec4 v)
     return max(max(v.x,v.y),max(v.z,v.w));
 }
 
+/* Calculates the position of the point with parameter t
+ * on a cubic Bezier curve */
 vec2 valBezier(vec4 Xs, vec4 Ys, float t)
 {
     float s = 1.0 - t;
@@ -30,6 +39,9 @@ vec2 valBezier(vec4 Xs, vec4 Ys, float t)
     return vec2(dot(Xs, vt), dot(Ys, vt));
 }
 
+/* Calculates the number of intersection between the Bezier
+ * curve and a line between the given pixel and an arbitrary
+ * point outside the curve */
 int nbBezierInter(vec2 uv, vec2[4] pts)
 {
     const vec2 ref = vec2(0, 1.1);
@@ -53,6 +65,10 @@ int nbBezierInter(vec2 uv, vec2[4] pts)
     return res;
 }
 
+/* These functions use a Catmull-Rom interpolation to find the control
+ * points at the current time and then calculate the number of intersections
+ * between the Bezier curve and a line between the given pixel and an
+ * arbitrary point outside the curve */
 float barry_goldman(vec4 X, vec4 T, float t)
 {
     vec3 A = ((T.yzw - t) * X.xyz + (t - T.xyz) * X.yzw) / (T.yzw - T.xyz);
@@ -79,6 +95,7 @@ int nbBezierInter_catmullRom(vec2 uv, vec4[8] pts, vec4 times, float t)
     return nbBezierInter(uv, inter);
 }
 
+/* Extract 2 points from their compression into an integer */
 vec4 int_to_vec4(uint val) {
     return vec4((float(val & 255u) - 128.0) / 70.0,
                 (float((val >> 8u) & 255u) - 128.0) / 70.0,
@@ -86,6 +103,7 @@ vec4 int_to_vec4(uint val) {
                 (float((val >> 24u) & 255u) - 128.0) / 70.0);
 }
 
+/* A nice looking jump from one position to another */
 vec2 jump(vec2 pos1, vec2 pos2, float t1, float t2, float t)
 {
     if(t <= t1) return pos1;
@@ -95,6 +113,7 @@ vec2 jump(vec2 pos1, vec2 pos2, float t1, float t2, float t)
                 pos1.y*(1.0-ti) + pos2.y*ti + 0.4*ti*(1.0-ti)*abs(pos2.x-pos1.x));
 }
 
+/* Main function */
 vec3 shot1(vec2 pixCoord, float time)
 {
     const int nbCurves = 27;
@@ -194,6 +213,7 @@ const uint data[216] = uint[216] (
     return col;
 }
 
+/* Entry point, manages anti-aliasing */
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     float AAf = float(AA);
